@@ -60,4 +60,4 @@ irresolvable_dep(_Config) ->
     #{status := {Status, _Name}, body := Body} = jhn_shttpc:post(<<?BASE_URL/binary, Endpoint/binary>>, Json, ?OPTS),
     [#{<<"error_type">> := Error}] = json:decode(Body),
     ?assertEqual(400, Status),
-    ?assertEqual(<<"irresolvable_dependency">>, Error).
+    ?assertEqual(<<"irresolvable_dependencies">>, Error).
