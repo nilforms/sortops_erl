@@ -1,14 +1,9 @@
--module(api_success_test_SUITE).
+-module(api_success_SUITE).
 
 -compile(export_all).
 
 %% Includes
--include_lib("common_test/include/ct.hrl").
--include_lib("eunit/include/eunit.hrl").
-
--define(OPTS, #{close => true,
-                headers => #{'Content-Type' => <<"application/json">>}}).
--define(BASE_URL, <<"http://localhost:8080/api">>).
+-include("test.hrl").
 
 init_per_suite(Config) ->
     application:ensure_all_started(sortops_erl),
@@ -49,7 +44,7 @@ sort_job(Config) ->
 sort_and_show_bash(Config) ->
     Json = proplists:get_value(json, Config),
     Endpoint = <<"/sort_to_script">>,
-    Output = #{<<"script">> =><<"#!/usr/bin/env bash \n command2 \n command1 \n">>},
+    Output = #{<<"script">> =><<"#!/usr/bin/env bash\ncommand2\ncommand1">>},
     #{status := {Status, _Name}, body := Body} = jhn_shttpc:post(<<?BASE_URL/binary, Endpoint/binary>>, Json, ?OPTS),
     ?assertEqual(200, Status),
     ?assertEqual(Output, json:decode(Body)).

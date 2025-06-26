@@ -1,15 +1,9 @@
--module(api_error_test_SUITE).
+-module(api_error_SUITE).
 
 -compile(export_all).
 
 %% Includes
--include_lib("common_test/include/ct.hrl").
--include_lib("eunit/include/eunit.hrl").
-
--define(OPTS, #{close => true,
-                headers => #{'Content-Type' => <<"application/json">>}}).
--define(BASE_URL, <<"http://localhost:8080/api">>).
-
+-include("test.hrl").
 
 init_per_suite(Config) ->
     application:ensure_all_started(sortops_erl),

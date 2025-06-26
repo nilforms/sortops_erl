@@ -10,13 +10,7 @@
 
 -export([sort/1]).
 
-%% Types defined
-
--type task() :: #{name => bitstring(),
-                 command => bitstring(),
-                 requires => [bitstring()]}.
-
--type job() :: [task()].
+-include("model.hrl").
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Model methods

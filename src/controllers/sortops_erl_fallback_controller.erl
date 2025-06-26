@@ -4,4 +4,4 @@
 ]).
 
 resolve(Req, {error, Error}) ->
-    {json, 400, #{}, #{<<"error_type">> => Error}}.
+    {json, 400, #{}, [#{<<"error_type">> => Error}]}.
