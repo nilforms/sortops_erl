@@ -1,14 +1,11 @@
 -module(topological_sort).
 
-%%%-------------------------------------------------------------------
-%% @doc
-%% Implementation of topological sorting for a collection of
-%% linux tasks.
-%% Based on https://rosettacode.org/wiki/Topological_sort#Erlang
-%% @end
-%%%-------------------------------------------------------------------
+-moduledoc """
+Implementation of topological sorting for a collection of linux tasks.
+Based on https://rosettacode.org/wiki/Topological_sort#Erlang
+""".
 
--export([sort/1]).
+-export([perform/1]).
 
 -include("model.hrl").
 
@@ -16,50 +13,44 @@
 %%% Model methods
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%-------------------------------------------------------------------
--spec sort(job()) -> {ok, job()} | {error, term()}.
-%% @doc
-%% Main sorting algorithm
-%%
-%% @end
-%%%-------------------------------------------------------------------
-sort(InJob) ->
+-doc "Main sorting algorithm".
+-spec perform(job()) -> {ok, job()} | {error, term()}.
+perform([Task | []] = Job) ->
+    case is_map_key(<<"requires">>, Task) of
+        true -> {error, non_existing_dependencies};
+        false -> {ok, Job}
+    end;
+perform(InJob) ->
     G = build_dependency_graph(InJob),
-    case digraph:no_edges(G) of
-        0 ->
-            OutVertices = digraph:vertices(G),
-            OutJob = get_job_from_verices(OutVertices, G),
-            digraph:delete(G),
-            {ok, OutJob};
-        _Edges ->
-            case digraph_utils:topsort(G) of
-                false ->
-                    digraph:delete(G),
-                    {error, irresolvable_dependencies};
-                Vertices ->
-                    OutJob = get_job_from_verices(Vertices, G),
-                    digraph:delete(G),
-                    {ok, OutJob}
-        end
-    end.
+    NumTasks = length(InJob),
+    NumEdges = digraph:no_edges(G),
+    NumVertices = digraph:no_vertices(G),
+    Result = if
+                NumVertices < NumTasks -> {error, non_unique_task_names};
+                NumVertices > NumTasks -> {error, non_existing_dependencies};
+                NumEdges =:= 0 -> {ok, form_job_from_vertices(G)};
+                true ->
+                    case digraph_utils:topsort(G) of
+                        false -> {error, irresolvable_dependencies};
+                        Vertices -> {ok, form_job_from_vertices(G, Vertices)}
+                    end
+             end,
+    digraph:delete(G),
+    Result.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Helper functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%-------------------------------------------------------------------
+-doc "Builds Dependency Graph from Job".
 -spec build_dependency_graph(job()) -> digraph:graph().
 -spec build_dependency_graph(job(), digraph:graph()) -> digraph:graph().
-%% @doc
-%% Builds Dependency Graph from Job
-%%
-%% @end
-%%%-------------------------------------------------------------------
 build_dependency_graph(Job) ->
     build_dependency_graph(Job, digraph:new()).
 
 build_dependency_graph(Job, G) ->
-    lists:foldl(fun(#{<<"name">> := Name} = Task, Acc) ->
+    lists:foldl(fun(Task, Acc) ->
+                    Name = maps:get(<<"name">>, Task),
                     case maps:take(<<"requires">>, Task) of
                         {Deps, TaskNoDep} ->
                             digraph:add_vertex(Acc, Name, TaskNoDep),
@@ -72,28 +63,23 @@ build_dependency_graph(Job, G) ->
                     Acc
                 end, G, Job).
 
-%%%-------------------------------------------------------------------
--spec get_job_from_verices([digraph:vertex()], digraph:graph()) -> job().
-%% @doc
-%% Forms Job from sorted Graph vertices
-%%
-%% @end
-%%%-------------------------------------------------------------------
-get_job_from_verices(Vertices, Graph) ->
-    lists:foldr(fun(V, Acc) ->
-                    case digraph:vertex(Graph, V) of
-                        {_Name, Task} when is_map(Task) -> [Task | Acc];
-                        _Vertex -> Acc % no task actually => non-existing dependecy
-                    end
-              end, [], Vertices).
+-doc "Forms Job from sorted Graph vertices".
+-spec form_job_from_vertices(Graph) -> Result
+    when Graph :: digraph:graph(),
+         Result :: job().
+-spec form_job_from_vertices(Graph, Vertices) -> Result
+    when Graph :: digraph:graph(),
+         Vertices :: [digraph:vertex()],
+         Result :: job().
+form_job_from_vertices(Graph) ->
+    form_job_from_vertices(Graph, digraph:vertices(Graph)).
+form_job_from_vertices(Graph, [V | Vertices]) ->
+    {_Name, Task} = digraph:vertex(Graph, V),
+    [Task | form_job_from_vertices(Graph, Vertices)];
+form_job_from_vertices(_Graph, []) -> [].
 
-%%%-------------------------------------------------------------------
+-doc "Adds dependecy to Graph".
 -spec add_dependency(digraph:graph(), binary(), binary()) -> ok.
-%% @doc
-%% Adds dependecy to Graph
-%%
-%% @end
-%%%-------------------------------------------------------------------
 add_dependency(_G, L, L) ->
     ok;
 add_dependency(G, L, D) ->
@@ -101,4 +87,4 @@ add_dependency(G, L, D) ->
         false -> digraph:add_vertex(G, D);
         {_D, _Label} -> ok
     end,
-    digraph:add_edge(G, D, L). % Dependencies represented as an edge D -> L
+    digraph:add_edge(G, D, L).
