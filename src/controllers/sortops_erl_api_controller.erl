@@ -19,19 +19,15 @@ index(_Req) ->
 %% Since validation is performed using JSON schema
 %% no default clause is needed
 show_json(#{json := #{<<"tasks">> := InputJob}}) ->
-    case topological_sort:sort(InputJob) of
-        {ok, OutputJob} ->
-            {json, 200, #{}, #{tasks => OutputJob}};
-        Error ->
-            Error
+    maybe
+        {ok, OutputJob} ?= topological_sort:perform(InputJob),
+            {json, 200, #{}, #{tasks => OutputJob}}
     end.
 
 show_script(#{json := #{<<"tasks">> := InputJob}}) ->
-    case topological_sort:sort(InputJob) of
-        {ok, OutputJob} ->
-            {json, 200, #{}, #{script => render_bash(OutputJob)}};
-        Error ->
-            Error
+    maybe
+        {ok, OutputJob} ?= topological_sort:perform(InputJob),
+            {json, 200, #{}, #{tasks => OutputJob}}
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
